@@ -1,129 +1,132 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Customer Support</title>
+<!doctype html>
+<html>
+  <head>
+    <title>Customer Chat</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 400px;
+        margin: 50px auto;
+        display: flex;
+        flex-direction: column;
+        height: 90vh;
+      }
 
-<style>
-* {
-  box-sizing: border-box;
-}
+      h2 {
+        text-align: center;
+        margin-bottom: 10px;
+      }
 
-body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #f3f4f6;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  margin: 0;
-}
+      #chat {
+        flex-grow: 1;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        padding: 10px;
+        background: #f0f0f0;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
 
-/* Chat Container */
-.chat-wrapper {
-  width: 100%;
-  height: 400px;
-  max-width: 420px;
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
+      .message {
+        padding: 8px 12px;
+        border-radius: 15px;
+        margin: 5px 0;
+        max-width: 70%;
+        word-wrap: break-word;
+        position: relative;
+        clear: both;
+      }
 
-/* Header */
-.chat-header {
-  padding: 14px;
-  background: #4f46e5;
-  color: #fff;
-  font-weight: 600;
-  text-align: center;
-}
+      .message.customer {
+        background: #dcf8c6;
+        align-self: flex-end;
+        border-bottom-right-radius: 0;
+      }
 
-/* Messages */
-#messages {
-  flex: 1;
-  padding: 14px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
+      .message.admin {
+        background: #fff;
+        align-self: flex-start;
+        border-bottom-left-radius: 0;
+      }
 
-/* Message bubble */
-.msg {
-  max-width: 75%;
-  padding: 10px 14px;
-  border-radius: 16px;
-  font-size: 14px;
-  line-height: 1.4;
-  word-wrap: break-word;
-}
+      .timestamp {
+        font-size: 10px;
+        color: gray;
+        margin-top: 2px;
+        text-align: right;
+      }
 
-/* Customer (right) */
-.customer {
-  background: #4f46e5;
-  color: #fff;
-  align-self: flex-end;
-  border-bottom-right-radius: 4px;
-}
+      #input-area {
+        display: flex;
+        margin-top: 10px;
+      }
 
-/* Business (left) */
-.business {
-  background: #e5e7eb;
-  color: #111;
-  align-self: flex-start;
-  border-bottom-left-radius: 4px;
-}
+      #input-area input {
+        flex-grow: 1;
+        padding: 10px;
+        font-size: 14px;
+        border-radius: 20px;
+        border: 1px solid #ccc;
+        outline: none;
+      }
 
-/* Input area */
-.input-area {
-  display: flex;
-  border-top: 1px solid #e5e7eb;
-}
+      #input-area button {
+        margin-left: 5px;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 50%;
+        background: #4caf50;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+      }
 
-#messageInput {
-  flex: 1;
-  padding: 12px;
-  border: none;
-  outline: none;
-  font-size: 14px;
-}
+      #input-area button:hover {
+        background: #45a049;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Support Chat</h2>
+    <div id="chat"></div>
+    <div id="input-area">
+      <input id="message" placeholder="Type a message..." />
+      <button onclick="sendMessage()">➤</button>
+    </div>
 
-button {
-  padding: 0 18px;
-  border: none;
-  background: #4f46e5;
-  color: #fff;
-  font-weight: 500;
-  cursor: pointer;
-}
+    <script>
+      // Generate unique room per customer
+      let room_id = localStorage.getItem("room_id");
+      if (!room_id) {
+        room_id = "user_" + Math.floor(Math.random() * 1000000);
+        localStorage.setItem("room_id", room_id);
+      }
 
-button:hover {
-  background: #4338ca;
-}
-</style>
-</head>
+      // const ws = new WebSocket(`ws://127.0.0.1:8000/ws/${room_id}`);
+      const ws = new WebSocket(
+        `wss://support-chat-wpms.onrender.com/ws/${room_id}`,
+      );
 
-<body>
+      const chat = document.getElementById("chat");
 
-<div class="chat-wrapper">
-  <div class="chat-header">Customer Support</div>
+      ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        const div = document.createElement("div");
+        div.className =
+          "message " + (msg.sender === "admin" ? "admin" : "customer");
+        div.innerHTML = `${msg.content}<div class="timestamp">${new Date(msg.timestamp).toLocaleTimeString()}</div>`;
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
+      };
 
-  <div id="messages"></div>
-
-  <div class="input-area">
-    <input id="messageInput" placeholder="Type your message..." />
-    <button onclick="sendMessage()">Send</button>
-  </div>
-</div>
-
-<script>
-  const ROOM_ID = "support-123";
-  const SENDER = "customer";
-</script>
-<script src="chat.js"></script>
-
-</body>
+      function sendMessage() {
+        const sender = "customer";
+        const content = document.getElementById("message").value;
+        if (!content) return;
+        ws.send(JSON.stringify({ sender, content }));
+        document.getElementById("message").value = "";
+      }
+    </script>
+  </body>
 </html>
